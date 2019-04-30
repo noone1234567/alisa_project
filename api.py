@@ -47,7 +47,9 @@ def handle_dialog(req, res):
     global board
     if req['session']['new']:
         board = chess.Board()
-        sessionStorage[user_id] = {'suggests': ["Помощь", "Посмотреть поле"]}
+        sessionStorage[user_id] = {'suggests': ["Помощь", "Посмотреть поле", "Что ты умеешь?"]}
+        res['response']['text'] = 'Привет! Сыграем партию в шахматы? Вы играете белыми. Можете сделать ход "е2е4" или другой.'
+        return
     res['response']['buttons'] = get_suggests(user_id)
 
     if board.is_game_over():
@@ -67,10 +69,10 @@ def handle_dialog(req, res):
     if not a:
         return
 
-    if a.lower() == 'помощь':
-        res['response']['text'] = 'Это игра в шахматы. Почти. Во время вашего хода вы вводите значение вида "e2e4" ' \
-                                  'Чтобы сходить фигурой с клетки e2 на клетку e4. Затем в мой ход я делаю тоже самое.'\
-                                  'Также вы можете посмотреть всё поле.'
+    if a.lower() == 'помощь' or a.lower() == 'что ты умеешь?':
+        res['response']['text'] = 'Это шахматы. Я пока только учусь. ' \
+                                  'Ход указывайте в виде "e2e4". ' \
+                                  'Если вы хотите увидеть всё игровое поле, нажмите кнопку "Посмотреть поле".'
         return
 
     elif a.lower() == 'посмотреть поле':
@@ -88,37 +90,8 @@ def handle_dialog(req, res):
         board.push_san(board.san(mv))
         res['response']['text'] = str(mv)
     except Exception as e:
-        res['response']['text'] = str(e)
+        res['response']['text'] = 'Так ходить нельзя!'
         return
-
-    '''user_id = req['session']['user_id']
-
-    if req['session']['new']:
-
-        sessionStorage[user_id] = {'suggests': [
-                "Не хочу.",
-                "Давай"]}
-
-        res['response']['text'] = 'Привет! Сыграем в шахматы?'
-
-        return
-    if req['request']['original_utterance'].lower() in ['ладно',
-                                                        'хорошо',
-                                                        'давай',
-                                                        'да',
-                                                        'уговорила',
-                                                        "договорились"]:
-        # Пользователь согласился, прощаемся.
-
-        game()
-
-        """res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
-        res['response']['end_session'] = True
-        return"""
-
-    # Если нет, то убеждаем его купить слона!
-    res['response']['text'] = 'Ладно, пока!'
-    return'''
 
 
 # Функция возвращает подсказки для ответа.
