@@ -74,7 +74,9 @@ def handle_dialog(req, res):
         return
 
     elif a.lower() == 'посмотреть поле':
-        res['response']['text'] = str(board).replace('.', '  .  ')
+        res['response']['text'] = str(board).replace('r', '♜').replace('n', '♞').replace('b', '♝').replace('q', '♛')\
+            .replace('k', '♚').replace('p', '♟').replace('R', '♖').replace('N', '♘').replace('B', '♗')\
+            .replace('Q', '♕').replace('K', '♔').replace('P', '♙').replace('.', ' ')
         return
 
     try:
