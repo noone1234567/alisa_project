@@ -25,8 +25,7 @@ def main():
 def handle_dialog(res, req):
     global topline, midline, botline, tpl, vbar, pieces
     user_id = req['session']['user_id']
-    res['response']['buttons'] = [{'title': 'Помощь', 'hide': True},
-                                  {'title': 'http://translate.yandex.ru/', 'hide': True, 'url': 'http://translate.yandex.ru/'}]
+    res['response']['buttons'] = [{'title': 'Помощь', 'hide': True}]
     logging.info(req['request']['command'])
     if req['session']['new']:
         version_info = (0, 1)
@@ -39,10 +38,10 @@ def handle_dialog(res, req):
         (vbar, hbar, ul, ur, ll, lr, nt, st, wt, et, plus) = box
         h3 = hbar * 2
         # useful constant unicode strings to draw the square borders
-        topline = ul + (h3 + nt) * 7 + h3 + ur
-        midline = wt + (h3 + plus) * 7 + h3 + et
-        botline = ll + (h3 + st) * 7 + h3 + lr
-        tpl = u' {0} ' + vbar
+        topline = '. ' +ul + (h3 + nt) * 7 + h3 + ur
+        midline = '. '+wt + (h3 + plus) * 7 + h3 + et
+        botline = '. ' +ll + (h3 + st) * 7 + h3 + lr
+        tpl = u' {0}  ' + vbar
         start_position = (
             [
                 (-4, -2, -3, -5, -6, -3, -2, -4),
@@ -58,21 +57,11 @@ def handle_dialog(res, req):
         game.__doc__ = """Return the chessboard as a string for a given position.
             position is a list of 8 lists or tuples of length 8 containing integers
         """
-        res['response']['text'] = game(start_position)
+        res['response']['text'] = game(start_position) + '\n　 A　  B　  C　  D　  E　  F　  G　  H'
         return
     return
 
-
-def translate(word):
-    lang = "en"
-    key = "trnsl.1.1.20190430T184245Z.d64c8ccf0b01b8d1.8221599076bea49f91cbc451af19b77fdcc703e2"
-    req = "https://translate.yandex.net/api/v1.5/tr.json/translate?key={}&text={}&lang={}".format(key, word, lang)
-
-    response = requests.get(req)
-
-    return response.json()['text'][0] if response else None
-
-def inter(*args):
+def inter(num, *args):
     """Return a unicode string with a line of the chessboard.
 
     args are 8 integers with the values
@@ -81,14 +70,21 @@ def inter(*args):
         -1, -2, -3, -4, -5, -6: same black pieces
     """
     assert len(args) == 8
-    return ' ' + vbar + ''.join((tpl.format(pieces[a]) for a in args))
+    listi = []
+    for a in args:
+        if a == 0:
+            listi.append(tpl.format(pieces[a]))
+        else:
+            tpl1 = ' {0}  ' + vbar
+            listi.append(tpl1.format(pieces[a]))
+    return str(num) + vbar + ''.join(listi)
 
 def _game(position):
     yield topline
-    yield inter(*position[0])
-    for row in position[1:]:
+    yield inter(8, *position[0])
+    for row in range(len(position[1:])):
         yield midline
-        yield inter(*row)
+        yield inter(7 - row, *position[1:][row])
     yield botline
 
 if __name__ == '__main__':
