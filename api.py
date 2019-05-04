@@ -42,13 +42,70 @@ def main():
     return json.dumps(response)
 
 
+def make_field(bad_field):
+    def _game(position):
+        yield topline
+        yield inter(8, *position[0])
+        for row in range(len(position[1:])):
+            yield midline
+            yield inter(7 - row, *position[1:][row])
+        yield botline
+
+    def inter(num, *args):
+        """Return a unicode string with a line of the chessboard.
+        args are 8 integers with the values
+            0 : empty square
+            1, 2, 3, 4, 5, 6: white pawn, knight, bishop, rook, queen, king
+            -1, -2, -3, -4, -5, -6: same black pieces
+        """
+        assert len(args) == 8
+        listi = []
+        for a in args:
+            if a == 0:
+                listi.append(tpl.format(pieces[a]))
+            else:
+                tpl1 = '{0}' + vbar
+                listi.append(tpl1.format(pieces[a]))
+        return str(num) + vbar + ''.join(listi)
+
+    global topline, midline, botline, tpl, pieces, vbar
+    bad_field = list(map(lambda x: x.split(), bad_field.split('\n')))
+    bad_good = {'r': -4, 'n': -2, 'b': -3, 'q': -5, 'k': -6, 'p': -1, 'R': 4, 'N': 2, 'B': 3, 'Q': 5, 'K': 6, 'P': 1,
+                '.': 0}
+    for el in range(len(bad_field)):
+        for elim in range(len(bad_field[el])):
+            bad_field[el][elim] = bad_good[bad_field[el][elim]]
+    # some noise
+    pieces = u''.join(chr(9812 + x) for x in range(12))
+    pieces = u'　' + pieces[:6][::-1] + pieces[6:]
+    allbox = u''.join(chr(9472 + x) for x in range(200))
+    # box = [allbox[i] for i in (2, 0, 12, 16, 20, 24, 44, 52, 28, 36, 60)]
+    # (vbar, hbar, ul, ur, ll, lr, nt, st, wt, et, plus) = box
+    (vbar, hbar, ul, ur, ll, lr, nt, st, wt, et, plus) = '┇ ┅ ┏ ┓ ┗ ┛ ┳ ┻ ┣ ┫ ╋'.split()
+
+    h3 = hbar  # * 2
+    # useful constant unicode strings to draw the square borders
+    topline = ' ' + ul + (h3 + nt) * 7 + h3 + ur
+    midline = ' ' + wt + (h3 + plus) * 7 + h3 + et
+    botline = ' ' + ll + (h3 + st) * 7 + h3 + lr
+    tpl = u'{0}' + vbar
+    game = lambda squares: "\n".join(_game(squares))
+    game.__doc__ = """Return the chessboard as a string for a given position.
+        position is a list of 8 lists or tuples of length 8 containing integers
+    """
+    ans = game(bad_field) + '\n　  A　 B　 C　 D　 E　 F　 G　 H'
+    return ans
+
+
 def handle_dialog(req, res):
     user_id = req['session']['user_id']
     global board
     if req['session']['new']:
         board = chess.Board()
         sessionStorage[user_id] = {'suggests': ["Помощь", "Посмотреть поле", "Что ты умеешь?"]}
-        res['response']['text'] = 'Привет! Сыграем партию в шахматы? Вы играете белыми. Можете сделать ход "е2е4" или другой.'
+        res['response'][
+            'text'] = 'Привет! Сыграем партию в шахматы? Вы играете белыми. Можете сделать ход "е2е4" или другой.'
+        res['response']['buttons'] = get_suggests(user_id)
         return
     res['response']['buttons'] = get_suggests(user_id)
 
@@ -57,11 +114,14 @@ def handle_dialog(req, res):
         sessionStorage[user_id] = {'suggests': [
             "Нет",
             "Да"]}
-        if req['request']['original_utterance'].lower() == 'нет':
-            res['response']['end_session'] = True
-        else:
-            res['response']['text'] = 'Отлично, сыграем ещё раз!'
-            board = chess.Board()
+        return
+    if req['request']['original_utterance'].lower() == 'нет':
+        res['response']['end_session'] = True
+        return 
+    elif req['request']['original_utterance'].lower() == 'да':
+        res['response']['text'] = 'Отлично, сыграем ещё раз!'
+        sessionStorage[user_id] = {'suggests': ["Помощь", "Посмотреть поле", "Что ты умеешь?"]}
+        board = chess.Board()
         return
 
     res['response']['text'] = 'Ваш ход'
@@ -76,9 +136,7 @@ def handle_dialog(req, res):
         return
 
     elif a.lower() == 'посмотреть поле':
-        res['response']['text'] = str(board).replace('r', '♜').replace('n', '♞').replace('b', '♝').replace('q', '♛')\
-            .replace('k', '♚').replace('p', '♟').replace('R', '♖').replace('N', '♘').replace('B', '♗')\
-            .replace('Q', '♕').replace('K', '♔').replace('P', '♙').replace('.', ' ')
+        res['response']['text'] = make_field(str(board))
         return
 
     try:
@@ -90,8 +148,37 @@ def handle_dialog(req, res):
         board.push_san(board.san(mv))
         res['response']['text'] = str(mv)
     except Exception as e:
-        res['response']['text'] = 'Так ходить нельзя!'
+        res['response']['text'] = 'Так ходить нельзя! {}'.format(e)
         return
+
+    '''user_id = req['session']['user_id']
+
+    if req['session']['new']:
+
+        sessionStorage[user_id] = {'suggests': [
+                "Не хочу.",
+                "Давай"]}
+
+        res['response']['text'] = 'Привет! Сыграем в шахматы?'
+
+        return
+    if req['request']['original_utterance'].lower() in ['ладно',
+                                                        'хорошо',
+                                                        'давай',
+                                                        'да',
+                                                        'уговорила',
+                                                        "договорились"]:
+        # Пользователь согласился, прощаемся.
+
+        game()
+
+        """res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
+        res['response']['end_session'] = True
+        return"""
+
+    # Если нет, то убеждаем его купить слона!
+    res['response']['text'] = 'Ладно, пока!'
+    return'''
 
 
 # Функция возвращает подсказки для ответа.
