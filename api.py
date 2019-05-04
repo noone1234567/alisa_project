@@ -3,13 +3,10 @@ from flask import Flask, request
 import logging
 import chess
 import random
-
 import json
-
 
 app = Flask(__name__)
 board = chess.Board()
-
 
 logging.basicConfig(level=logging.INFO)
 
@@ -43,31 +40,6 @@ def main():
 
 
 def make_field(bad_field):
-    def _game(position):
-        yield topline
-        yield inter(8, *position[0])
-        for row in range(len(position[1:])):
-            yield midline
-            yield inter(7 - row, *position[1:][row])
-        yield botline
-
-    def inter(num, *args):
-        """Return a unicode string with a line of the chessboard.
-        args are 8 integers with the values
-            0 : empty square
-            1, 2, 3, 4, 5, 6: white pawn, knight, bishop, rook, queen, king
-            -1, -2, -3, -4, -5, -6: same black pieces
-        """
-        assert len(args) == 8
-        listi = []
-        for a in args:
-            if a == 0:
-                listi.append(tpl.format(pieces[a]))
-            else:
-                tpl1 = '{0}' + vbar
-                listi.append(tpl1.format(pieces[a]))
-        return str(num) + vbar + ''.join(listi)
-
     global topline, midline, botline, tpl, pieces, vbar
     bad_field = list(map(lambda x: x.split(), bad_field.split('\n')))
     bad_good = {'r': -4, 'n': -2, 'b': -3, 'q': -5, 'k': -6, 'p': -1, 'R': 4, 'N': 2, 'B': 3, 'Q': 5, 'K': 6, 'P': 1,
@@ -97,6 +69,33 @@ def make_field(bad_field):
     return ans
 
 
+def _game(position):
+    yield topline
+    yield inter(8, *position[0])
+    for row in range(len(position[1:])):
+        yield midline
+        yield inter(7 - row, *position[1:][row])
+    yield botline
+        
+
+def inter(num, *args):
+    """Return a unicode string with a line of the chessboard.
+    args are 8 integers with the values
+        0 : empty square
+        1, 2, 3, 4, 5, 6: white pawn, knight, bishop, rook, queen, king
+        -1, -2, -3, -4, -5, -6: same black pieces
+    """
+    assert len(args) == 8
+    listi = []
+    for a in args:
+        if a == 0:
+            listi.append(tpl.format(pieces[a]))
+        else:
+            tpl1 = '{0}' + vbar
+            listi.append(tpl1.format(pieces[a]))
+    return str(num) + vbar + ''.join(listi)
+        
+        
 def handle_dialog(req, res):
     user_id = req['session']['user_id']
     global board
@@ -151,35 +150,6 @@ def handle_dialog(req, res):
         res['response']['text'] = 'Так ходить нельзя! {}'.format(e)
         return
 
-    '''user_id = req['session']['user_id']
-
-    if req['session']['new']:
-
-        sessionStorage[user_id] = {'suggests': [
-                "Не хочу.",
-                "Давай"]}
-
-        res['response']['text'] = 'Привет! Сыграем в шахматы?'
-
-        return
-    if req['request']['original_utterance'].lower() in ['ладно',
-                                                        'хорошо',
-                                                        'давай',
-                                                        'да',
-                                                        'уговорила',
-                                                        "договорились"]:
-        # Пользователь согласился, прощаемся.
-
-        game()
-
-        """res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
-        res['response']['end_session'] = True
-        return"""
-
-    # Если нет, то убеждаем его купить слона!
-    res['response']['text'] = 'Ладно, пока!'
-    return'''
-
 
 # Функция возвращает подсказки для ответа.
 def get_suggests(user_id):
@@ -194,3 +164,4 @@ def get_suggests(user_id):
 
 if __name__ == '__main__':
     app.run()
+
